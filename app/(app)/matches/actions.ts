@@ -1,9 +1,10 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import {
   MatchActionError,
   cancelJoinRequest,
+  completeMatch,
   leaveMatch,
   requestToJoin,
   respondToInvite,
@@ -46,3 +47,14 @@ export async function reviewJoinRequestAction(
 ) {
   return run(() => reviewJoinRequest(matchId, requesterId, approve));
 }
+
+export async function completeMatchAction(matchId: string) {
+  return run(async () => {
+    await completeMatch(matchId);
+    revalidatePath("/matches");
+    revalidatePath(`/matches/${matchId}`);
+    revalidatePath("/ratings");
+    revalidatePath("/history");
+  });
+}
+

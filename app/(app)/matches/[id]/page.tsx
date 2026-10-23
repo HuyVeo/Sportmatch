@@ -28,6 +28,7 @@ import { getSports } from "@/lib/data/sports";
 import { getCurrentUser, getUsers } from "@/lib/data/users";
 import { formatDateTime } from "@/lib/format";
 import type { User } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -104,10 +105,17 @@ export default async function MatchDetailPage({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
+              <span
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-semibold",
+                  match.status === "Đã hoàn tất"
+                    ? "bg-amber-500/15 text-amber-500"
+                    : "bg-secondary text-muted-foreground",
+                )}
+              >
                 {match.status}
               </span>
-              {isFull ? (
+              {match.status === "Đã hoàn tất" ? null : isFull ? (
                 <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
                   Đã đủ
                 </span>
@@ -144,8 +152,31 @@ export default async function MatchDetailPage({
             isFull={isFull}
             isOpen={isOpen}
             isUpcoming={match.status === "Sắp diễn ra"}
+            isCompleted={match.status === "Đã hoàn tất"}
           />
         </div>
+
+        {match.status === "Đã hoàn tất" && (role === "host" || role === "joined") ? (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⭐</span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Trận đấu đã hoàn thành! Hãy đánh giá đồng đội cùng trận.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Chấm 1–5 sao và viết nhận xét để giúp đồng đội xây dựng hồ sơ uy tín.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/ratings"
+              className="bg-brand-gradient hover:opacity-90 inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold text-white shadow"
+            >
+              Đánh giá ngay
+            </Link>
+          </div>
+        ) : null}
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start">

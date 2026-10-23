@@ -13,7 +13,10 @@ import {
   Trophy,
   User as UserIcon,
 } from "lucide-react";
-import { saveProfileAction } from "@/app/(app)/settings/actions";
+import {
+  changePasswordAction,
+  saveProfileAction,
+} from "@/app/(app)/settings/actions";
 import { locateAreaAction } from "@/app/onboarding/actions";
 import { AvatarPicker } from "@/components/profile/avatar-picker";
 import { useToast } from "@/components/ui/toast";
@@ -102,6 +105,46 @@ export function SettingsPanel({
   );
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // State cho chức năng đổi mật khẩu
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwPending, startPwTransition] = useTransition();
+
+  function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentPassword) {
+      toast.error("Vui lòng nhập mật khẩu hiện tại.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Mật khẩu mới phải có tối thiểu 6 ký tự.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    startPwTransition(async () => {
+      const res = await changePasswordAction({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+
+      if (!res.ok) {
+        toast.error(res.error ?? "Không thể đổi mật khẩu.");
+        return;
+      }
+
+      toast.success("Đổi mật khẩu thành công!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    });
+  }
 
   async function detectArea() {
     setLocating(true);
@@ -489,12 +532,12 @@ export function SettingsPanel({
 
         {tab === "security" ? (
           <section className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="font-heading text-lg font-bold">Bảo mật</h2>
+            <h2 className="font-heading text-lg font-bold">Bảo mật tài khoản</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Đổi mật khẩu để giữ tài khoản an toàn.
+              Đổi mật khẩu định kỳ để giữ tài khoản của bạn luôn an toàn.
             </p>
 
-            <div className="mt-6 space-y-5">
+            <form onSubmit={handleChangePassword} className="mt-6 max-w-lg space-y-5">
               <div>
                 <label
                   htmlFor="currentPassword"
@@ -505,6 +548,10 @@ export function SettingsPanel({
                 <input
                   id="currentPassword"
                   type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu hiện tại"
+                  required
                   className="mt-2 h-12 w-full rounded-xl border border-input bg-secondary/40 px-4 text-sm outline-none transition-colors focus:border-brand"
                 />
               </div>
@@ -518,6 +565,11 @@ export function SettingsPanel({
                 <input
                   id="newPassword"
                   type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Tối thiểu 6 ký tự"
+                  required
+                  minLength={6}
                   className="mt-2 h-12 w-full rounded-xl border border-input bg-secondary/40 px-4 text-sm outline-none transition-colors focus:border-brand"
                 />
               </div>
@@ -531,14 +583,32 @@ export function SettingsPanel({
                 <input
                   id="confirmPassword"
                   type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Nhập lại mật khẩu mới"
+                  required
+                  minLength={6}
                   className="mt-2 h-12 w-full rounded-xl border border-input bg-secondary/40 px-4 text-sm outline-none transition-colors focus:border-brand"
                 />
               </div>
-            </div>
 
-            <p className="mt-6 text-xs text-muted-foreground">
-              Chức năng đổi mật khẩu sẽ hoạt động sau khi nối Auth.js.
-            </p>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={pwPending}
+                  className="bg-brand-gradient hover:opacity-90 inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow transition-opacity disabled:opacity-50"
+                >
+                  {pwPending ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Đang cập nhật...
+                    </>
+                  ) : (
+                    "Đổi mật khẩu"
+                  )}
+                </button>
+              </div>
+            </form>
           </section>
         ) : null}
       </div>

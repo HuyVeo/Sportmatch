@@ -407,3 +407,6 @@ export async function completeOnboarding(
     }),
   ]);
 }
+
+export { getUserRecentReviews, type UserReview } from "@/lib/data/ratings";
+

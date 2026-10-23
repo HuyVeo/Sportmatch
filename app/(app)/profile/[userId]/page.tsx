@@ -12,11 +12,18 @@ import {
   Users,
 } from "lucide-react";
 import { AvailabilityCard } from "@/components/profile/availability-card";
+import { DirectMessageButton } from "@/components/profile/direct-message-button";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { SportProfileCard } from "@/components/profile/sport-profile-card";
+import { UserReviewsCard } from "@/components/profile/user-reviews-card";
 import { calculateScore, getRankTier } from "@/lib/ranking";
 import { getSports } from "@/lib/data/sports";
-import { getCurrentUser, getUserById, getUsers } from "@/lib/data/users";
+import {
+  getCurrentUser,
+  getUserById,
+  getUserRecentReviews,
+  getUsers,
+} from "@/lib/data/users";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -33,11 +40,12 @@ export default async function ProfilePage({
   params,
 }: PageProps<"/profile/[userId]">) {
   const { userId } = await params;
-  const [user, users, sports, currentUser] = await Promise.all([
+  const [user, users, sports, currentUser, recentReviews] = await Promise.all([
     getUserById(userId),
     getUsers(),
     getSports(),
     getCurrentUser(),
+    getUserRecentReviews(userId),
   ]);
 
   if (!user) notFound();
@@ -130,6 +138,22 @@ export default async function ProfilePage({
                 </span>
               ) : null}
             </div>
+
+            {/* Social proof nhanh theo Section 4 tinhnangmoi.md */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
+              <span className="inline-flex items-center gap-1 font-bold text-amber-500">
+                <Star className="size-3.5 fill-current sm:size-4" />
+                <span>{user.averageStars > 0 ? user.averageStars.toFixed(1) : "0.0"}/5</span>
+                <span className="font-normal text-muted-foreground">
+                  · {user.ratingCount} đánh giá
+                </span>
+              </span>
+              <span className="text-muted-foreground">·</span>
+              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                <span>🏸</span>
+                <span className="font-medium text-foreground">{user.matchCount}</span> trận đã chơi
+              </span>
+            </div>
           </div>
 
           {isOwnProfile ? (
@@ -140,7 +164,9 @@ export default async function ProfilePage({
               <SquarePen className="size-4" />
               Sửa hồ sơ
             </Link>
-          ) : null}
+          ) : (
+            <DirectMessageButton peerId={user.id} />
+          )}
         </div>
 
         <p className="mt-4 text-sm">
@@ -234,7 +260,18 @@ export default async function ProfilePage({
             />
           </div>
 
-          <section className="order-4 rounded-2xl border border-border bg-card p-6">
+          <div className="order-4">
+            <UserReviewsCard
+              reviews={recentReviews}
+              averageStars={user.averageStars}
+              ratingCount={user.ratingCount}
+              matchCount={user.matchCount}
+              userName={user.name}
+              isOwnProfile={isOwnProfile}
+            />
+          </div>
+
+          <section className="order-5 rounded-2xl border border-border bg-card p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="font-heading flex items-center gap-2 text-lg font-bold">
@@ -312,7 +349,7 @@ export default async function ProfilePage({
             </Link>
           </section>
 
-          <section className="order-5 rounded-2xl border border-border bg-card p-6">
+          <section className="order-6 rounded-2xl border border-border bg-card p-6">
             <h2 className="font-heading text-lg font-bold">Chi tiết uy tín</h2>
             <ul className="mt-5 space-y-5">
               {trustDetails.map((item) => (

@@ -53,3 +53,14 @@ next-env.d.ts
 
 # knowledge graph của Graphify (tự sinh lại bằng `graphify update .`)
 /graphify-out
+
+# Python virtual environment & cache cục bộ trên ổ D
+/.venv
+/.uv-cache
+
+# Desktop build output & executables
+/dist
+/electron
+/*.exe
+*.log
+
