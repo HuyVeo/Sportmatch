@@ -1,0 +1,463 @@
+// SportMatch — schema theo `.claude/rules/data-model.md`.
+// Sport là bảng mở rộng được: thêm môn mới chỉ cần insert thêm row, không sửa core.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------- enums
+
+enum SkillLevel {
+  BEGINNER // Mới chơi
+  INTERMEDIATE // Trung cấp
+  ADVANCED // Chuyên nghiệp
+}
+
+enum Gender {
+  MALE // Nam
+  FEMALE // Nữ
+  OTHER // Khác
+}
+
+/// Mục đích chơi của người dùng với một môn — dùng cho matchmaking.
+enum PlayPurpose {
+  SOCIAL // Giao lưu
+  PRACTICE // Luyện tập
+  COMPETITIVE // Thi đấu
+}
+
+enum Weekday {
+  MON // Thứ hai
+  TUE // Thứ ba
+  WED // Thứ tư
+  THU // Thứ năm
+  FRI // Thứ sáu
+  SAT // Thứ bảy
+  SUN // Chủ nhật
+}
+
+enum MatchVisibility {
+  PUBLIC // Công khai
+  INVITE // Theo lời mời
+  PRIVATE // Riêng tư
+}
+
+enum MatchStatus {
+  UPCOMING // Sắp diễn ra
+  ONGOING // Đang diễn ra
+  COMPLETED // Đã hoàn tất
+}
+
+enum ParticipantStatus {
+  INVITED // invited
+  REQUESTED // xin vào trận công khai, chờ chủ trận duyệt
+  JOINED // joined
+  LEFT // left
+}
+
+enum NotificationType {
+  INVITE
+  JOIN
+  RATING
+  SYSTEM
+}
+
+enum CourtSource {
+  SPORTMATCH // sân do SportMatch quản lý (seed / nhập tay)
+  OSM // sân đồng bộ từ OpenStreetMap, id dạng "osm-node-123"
+}
+
+enum ClubMembershipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ---------------------------------------------------------------- auth + user
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+
+  // Avatar hệ thống là emoji (theo ảnh gốc) — dùng làm fallback khi chưa có ảnh.
+  // `image` là URL ảnh đại diện đã upload, `coverImage` là URL ảnh bìa hồ sơ.
+  avatar         String    @default("🧑")
+  coverImage     String?
+  bio            String    @default("")
+  area           String    @default("")
+  lat            Float?
+  lng            Float?
+  gender         Gender?
+  birthday       DateTime?
+  trustScore     Int       @default(80)
+  isOnline       Boolean   @default(false)
+  isPro          Boolean   @default(false)
+  communityVotes Int       @default(0)
+  onboardedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts        Account[]
+  sessions        Session[]
+  sports          UserSport[]
+  availability    Availability[]
+  hostedMatches   Match[]              @relation("MatchHost")
+  participation   MatchParticipant[]
+  ratingsGiven    Rating[]             @relation("RatingFrom")
+  ratingsGot      Rating[]             @relation("RatingTo")
+  notifications   Notification[]
+  messages        ChatMessage[]
+  conversations   ConversationMember[]
+  ownedClubs      Club[]               @relation("ClubOwner")
+  clubMemberships ClubMembership[]
+
+  @@index([area])
+}
+
+model Club {
+  id          String   @id @default(cuid())
+  ownerId     String?
+  name        String
+  area        String
+  sportType   String
+  logo        String   @default("🏸")
+  rating      Float    @default(4.8)
+  description String   @default("")
+  memberCount Int      @default(1)
+  capacity    Int      @default(20)
+  fee         Int      @default(0)
+  schedule    String[] @default([])
+  time        String   @default("19:00–21:00")
+  level       String   @default("Người mới")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner        User?             @relation("ClubOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  memberships  ClubMembership[]
+  conversation ChatConversation?
+
+  @@index([ownerId])
+  @@index([sportType])
+  @@index([area])
+}
+
+model ClubMembership {
+  clubId      String
+  userId      String
+  status      ClubMembershipStatus @default(PENDING)
+  requestedAt DateTime             @default(now())
+  reviewedAt  DateTime?
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([clubId, userId])
+  @@index([userId, status])
+  @@index([clubId, status])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------- thể thao
+
+model Sport {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  icon      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  /// Khoảng "Số người cần" khi tạo trận của môn này.
+  minPlayers     Int @default(2)
+  maxPlayers     Int @default(20)
+  defaultPlayers Int @default(4)
+
+  users   UserSport[]
+  matches Match[]
+  courts  CourtSport[]
+}
+
+/// Hồ sơ thể thao của user theo từng môn — nguồn dữ liệu chính cho matchmaking
+/// (cùng môn, trình độ, mục đích chơi, khu vực, sân yêu thích).
+model UserSport {
+  userId         String
+  sportId        String
+  skillLevel     SkillLevel    @default(BEGINNER)
+  purposes       PlayPurpose[] @default([])
+  /// Tên khu vực chuẩn trong `lib/areas.ts` (vd "Tây Hồ").
+  preferredAreas String[]      @default([])
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sport          Sport            @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  favoriteCourts UserSportCourt[]
+
+  @@id([userId, sportId])
+  @@index([sportId, skillLevel])
+  @@index([purposes], type: Gin)
+  @@index([preferredAreas], type: Gin)
+}
+
+/// Sân yêu thích của user cho một môn — chỉ trỏ tới sân có sẵn trong `Court`.
+model UserSportCourt {
+  userId  String
+  sportId String
+  courtId String
+
+  userSport UserSport @relation(fields: [userId, sportId], references: [userId, sportId], onDelete: Cascade)
+  court     Court     @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@id([userId, sportId, courtId])
+  @@index([courtId])
+}
+
+/// Khung giờ rảnh hằng tuần. Giờ lưu bằng số phút tính từ 00:00 (0–1439) để
+/// so khớp lịch giao nhau chỉ bằng phép so sánh: a.start < b.end && b.start < a.end.
+/// Một ngày có thể có nhiều khung; migration có CHECK end > start.
+model Availability {
+  id          String  @id @default(cuid())
+  userId      String
+  day         Weekday
+  startMinute Int
+  endMinute   Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day, startMinute, endMinute])
+  @@index([day, startMinute, endMinute])
+}
+
+// ---------------------------------------------------------------- trận đấu
+
+model Match {
+  id               String          @id @default(cuid())
+  sportId          String
+  hostId           String
+  title            String
+  courtName        String
+  address          String          @default("")
+  dateTime         DateTime
+  maxPlayers       Int             @default(4)
+  // null = "Bất kỳ"
+  skillRequirement SkillLevel?
+  visibility       MatchVisibility @default(PUBLIC)
+  description      String          @default("")
+  status           MatchStatus     @default(UPCOMING)
+  courtId          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sport        Sport              @relation(fields: [sportId], references: [id])
+  host         User               @relation("MatchHost", fields: [hostId], references: [id], onDelete: Cascade)
+  court        Court?             @relation(fields: [courtId], references: [id])
+  participants MatchParticipant[]
+  ratings      Rating[]
+  conversation ChatConversation?
+
+  @@index([sportId])
+  @@index([hostId])
+  @@index([dateTime])
+  @@index([status])
+}
+
+model MatchParticipant {
+  matchId  String
+  userId   String
+  status   ParticipantStatus @default(INVITED)
+  joinedAt DateTime          @default(now())
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([matchId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- sân bãi
+
+model Court {
+  id           String   @id @default(cuid())
+  name         String
+  area         String
+  address      String   @default("")
+  pricePerHour Int      @default(0)
+  phone        String   @default("")
+  isOpen       Boolean  @default(true)
+  lat          Float
+  lng          Float
+  createdAt    DateTime @default(now())
+
+  source       CourtSource @default(SPORTMATCH)
+  website      String?
+  /// Giờ mở cửa dạng chuỗi OSM (vd "Mo-Su 05:00-22:00").
+  openingHours String?
+  /// Lần cuối đồng bộ từ nguồn ngoài (chỉ sân OSM).
+  syncedAt     DateTime?
+
+  sports      CourtSport[]
+  matches     Match[]
+  favoritedBy UserSportCourt[]
+
+  @@index([area])
+  @@index([lat, lng])
+}
+
+/// Ô lưới ~0.1° (~11 km) đã tải sân từ OpenStreetMap — tránh gọi Overpass lại
+/// mỗi lần mở trang. Hết hạn sau một thời gian hoặc khi danh sách môn đổi.
+model CourtSyncCell {
+  id       String   @id // "210,1058" = floor(lat*10), floor(lng*10)
+  /// Các sport id đã đồng bộ cho ô này, sắp xếp, nối bằng dấu phẩy.
+  sports   String
+  syncedAt DateTime
+}
+
+model CourtSport {
+  courtId String
+  sportId String
+
+  court Court @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  sport Sport @relation(fields: [sportId], references: [id], onDelete: Cascade)
+
+  @@id([courtId, sportId])
+  @@index([sportId])
+}
+
+// ---------------------------------------------------------------- đánh giá
+
+model Rating {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  matchId    String
+  stars      Int
+  comment    String   @default("")
+  createdAt  DateTime @default(now())
+
+  fromUser User  @relation("RatingFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User  @relation("RatingTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  match    Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  // Mỗi người chỉ đánh giá một đồng đội một lần cho mỗi trận.
+  @@unique([fromUserId, toUserId, matchId])
+  @@index([toUserId])
+  @@index([matchId])
+}
+
+// ---------------------------------------------------------------- thông báo
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String           @default("")
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------- chat
+
+enum ConversationType {
+  DIRECT // chat riêng giữa 2 người chơi
+  MATCH // nhóm chat của 1 trận đấu
+  CLUB // nhóm chat nội bộ của 1 CLB (chủ CLB + thành viên đã duyệt)
+}
+
+model ChatConversation {
+  id            String           @id @default(cuid())
+  type          ConversationType @default(MATCH)
+  // Đúng 1 trong 3 khoá dưới đây có giá trị, tuỳ theo `type`.
+  matchId       String?          @unique
+  clubId        String?          @unique
+  // Chat riêng: "<userId nhỏ hơn>:<userId lớn hơn>" để mỗi cặp chỉ có 1 hội thoại.
+  directKey     String?          @unique
+  lastMessageAt DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+
+  match    Match?               @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  club     Club?                @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  members  ConversationMember[]
+  messages ChatMessage[]
+
+  @@index([lastMessageAt])
+}
+
+model ConversationMember {
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
