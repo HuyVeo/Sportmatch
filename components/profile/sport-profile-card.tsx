@@ -17,86 +17,113 @@ export function SportProfileCard({
   isOwnProfile: boolean;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-6">
+    <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-heading flex items-center gap-2 text-lg font-bold">
+        <h2 className="font-heading flex items-center gap-2 text-base font-bold sm:text-lg">
           <Trophy className="text-brand size-5" />
           Môn thể thao
         </h2>
         {isOwnProfile ? (
           <Link
             href="/settings#sports"
-            className="text-brand hover:bg-brand/10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors"
+            className="text-brand hover:bg-brand/10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm"
           >
-            <SquarePen className="size-4" />
+            <SquarePen className="size-3.5 sm:size-4" />
             Chỉnh sửa
           </Link>
         ) : null}
       </div>
 
       {sports.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">
+        <p className="mt-3 text-sm text-muted-foreground">
           Chưa chọn môn thể thao nào.
         </p>
       ) : (
-        <div className="mt-4 space-y-4">
+        <div className="mt-3.5 space-y-3 sm:mt-4 sm:space-y-4">
           {sports.map((entry) => {
             const sport = sportMap.get(entry.sportId);
+            const hasDetails =
+              entry.purposes.length > 0 ||
+              entry.preferredAreas.length > 0 ||
+              entry.favoriteCourts.length > 0;
+
             return (
               <article
                 key={entry.sportId}
-                className="rounded-2xl border border-border bg-secondary/30 p-5"
+                className="rounded-xl border border-border bg-secondary/30 p-3.5 sm:rounded-2xl sm:p-5"
               >
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-3xl">{sport?.icon ?? "🏅"}</span>
-                  <h3 className="font-heading text-lg font-bold">
-                    {sport?.name ?? entry.sportId}
-                  </h3>
-                  <span className="rounded-full bg-teal-400/15 px-3 py-1 text-xs font-semibold text-teal-400">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl sm:text-3xl">{sport?.icon ?? "🏅"}</span>
+                    <h3 className="font-heading text-base font-bold sm:text-lg">
+                      {sport?.name ?? entry.sportId}
+                    </h3>
+                  </div>
+                  <span className="rounded-full bg-teal-500/15 px-2.5 py-0.5 text-xs font-bold text-teal-600 dark:text-teal-400">
                     {entry.skillLevel}
                   </span>
                 </div>
 
-                <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <Detail icon={<Target className="size-3.5" />} label="Mục đích chơi">
-                    {entry.purposes.map((purpose) => (
-                      <span
-                        key={purpose}
-                        className="bg-brand/15 text-brand rounded-full px-3 py-1 text-sm font-semibold"
+                {!hasDetails ? (
+                  <div className="mt-3 flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 text-xs text-muted-foreground">
+                    <span>Chưa cập nhật chi tiết mục đích & sân chơi</span>
+                    {isOwnProfile ? (
+                      <Link
+                        href="/settings#sports"
+                        className="text-brand font-semibold hover:underline"
                       >
-                        {purpose}
-                      </span>
-                    ))}
-                  </Detail>
+                        Cập nhật
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : (
+                  <dl className="mt-3 grid gap-3 sm:mt-4 sm:grid-cols-2 sm:gap-4">
+                    {entry.purposes.length > 0 && (
+                      <Detail icon={<Target className="size-3.5" />} label="Mục đích chơi">
+                        {entry.purposes.map((purpose) => (
+                          <span
+                            key={purpose}
+                            className="bg-brand/15 text-brand rounded-full px-2.5 py-0.5 text-xs font-semibold sm:px-3 sm:py-1 sm:text-sm"
+                          >
+                            {purpose}
+                          </span>
+                        ))}
+                      </Detail>
+                    )}
 
-                  <Detail icon={<MapPin className="size-3.5" />} label="Khu vực thường chơi">
-                    {entry.preferredAreas.map((area) => (
-                      <span
-                        key={area}
-                        className="rounded-full border border-border bg-secondary px-3 py-1 text-sm font-medium"
-                      >
-                        {area}
-                      </span>
-                    ))}
-                  </Detail>
+                    {entry.preferredAreas.length > 0 && (
+                      <Detail icon={<MapPin className="size-3.5" />} label="Khu vực thường chơi">
+                        {entry.preferredAreas.map((area) => (
+                          <span
+                            key={area}
+                            className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium sm:px-3 sm:py-1 sm:text-sm"
+                          >
+                            {area}
+                          </span>
+                        ))}
+                      </Detail>
+                    )}
 
-                  <Detail
-                    icon={<Star className="size-3.5" />}
-                    label="Sân yêu thích"
-                    className="sm:col-span-2"
-                  >
-                    {entry.favoriteCourts.map((court) => (
-                      <span
-                        key={court.id}
-                        title={court.area || undefined}
-                        className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1 text-sm font-medium"
+                    {entry.favoriteCourts.length > 0 && (
+                      <Detail
+                        icon={<Star className="size-3.5" />}
+                        label="Sân yêu thích"
+                        className="sm:col-span-2"
                       >
-                        <MapPin className="text-brand size-3.5 shrink-0" />
-                        <span className="truncate">{court.name}</span>
-                      </span>
-                    ))}
-                  </Detail>
-                </dl>
+                        {entry.favoriteCourts.map((court) => (
+                          <span
+                            key={court.id}
+                            title={court.area || undefined}
+                            className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium sm:px-3 sm:py-1 sm:text-sm"
+                          >
+                            <MapPin className="text-brand size-3.5 shrink-0" />
+                            <span className="truncate">{court.name}</span>
+                          </span>
+                        ))}
+                      </Detail>
+                    )}
+                  </dl>
+                )}
               </article>
             );
           })}

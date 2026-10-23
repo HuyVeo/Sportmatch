@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppHeader } from "@/components/layout/app-header";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { RealtimeListener } from "@/components/chat/realtime-listener";
 import { DiscoverIntroProvider } from "@/components/discover/discover-intro-provider";
 import { Toaster } from "@/components/ui/toast";
@@ -34,9 +35,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <RealtimeListener topic={userRealtimeTopic(user.id)} />
       <DiscoverIntroProvider>
         <Toaster>
-          <div className="flex-1">{children}</div>
+          <div className="flex-1 pb-20 lg:pb-0">{children}</div>
         </Toaster>
       </DiscoverIntroProvider>
+      <MobileNav
+        userId={user.id}
+        displayName={displayName}
+        avatar={user.avatar}
+        avatarUrl={user.avatarUrl}
+      />
     </>
   );
 }

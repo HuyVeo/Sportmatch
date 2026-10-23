@@ -121,9 +121,9 @@ export function ProfileHeader({
         ) : null}
       </div>
 
-      <div className="px-5 pb-6 sm:px-8 sm:pb-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-          <div className="relative -mt-14 w-fit shrink-0 self-start sm:-mt-17">
+      <div className="px-4 pb-5 sm:px-8 sm:pb-8">
+        <div className="flex flex-col gap-3.5 sm:flex-row sm:gap-6">
+          <div className="relative -mt-12 w-fit shrink-0 self-start sm:-mt-17">
             <AvatarFrame
               editable={isOwnProfile}
               onEdit={() => pick("avatar")}
@@ -139,7 +139,7 @@ export function ProfileHeader({
                   onError={() => markBroken(avatarUrl)}
                 />
               ) : (
-                <span className="bg-brand-gradient flex size-full items-center justify-center text-5xl leading-none sm:text-6xl">
+                <span className="bg-brand-gradient flex size-full items-center justify-center text-4xl leading-none sm:text-6xl">
                   {displayEmoji(avatarEmoji)}
                 </span>
               )}
@@ -147,7 +147,7 @@ export function ProfileHeader({
             {isOnline ? (
               <span
                 aria-label="Đang online"
-                className="bg-success absolute right-1.5 bottom-1.5 size-4 rounded-full ring-4 ring-card sm:right-2.5 sm:bottom-2.5 sm:size-5"
+                className="bg-success absolute right-1.5 bottom-1.5 size-3.5 rounded-full ring-4 ring-card sm:right-2.5 sm:bottom-2.5 sm:size-5"
               />
             ) : null}
           </div>
@@ -193,7 +193,7 @@ function AvatarFrame({
   children: ReactNode;
 }) {
   const frame =
-    "relative block size-28 overflow-hidden rounded-full border-4 border-card bg-card sm:size-34";
+    "relative block size-24 overflow-hidden rounded-full border-4 border-card bg-card sm:size-34";
 
   if (!editable) return <div className={frame}>{children}</div>;
 

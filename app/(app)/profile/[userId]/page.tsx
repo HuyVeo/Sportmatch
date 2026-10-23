@@ -112,7 +112,7 @@ export default async function ProfilePage({
   const isOwnProfile = user.id === currentUser.id;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-10">
+    <div className="mx-auto w-full max-w-5xl px-3.5 py-4 sm:px-6 sm:py-8">
       <ProfileHeader
         name={user.name}
         avatarEmoji={user.avatar}
@@ -121,12 +121,28 @@ export default async function ProfilePage({
         isOnline={user.isOnline}
         isOwnProfile={isOwnProfile}
       >
-        <div className="flex flex-wrap items-start gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-              {user.name}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-start justify-between gap-2">
+              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                {user.name}
+              </h1>
+              {isOwnProfile ? (
+                <Link
+                  href="/settings"
+                  className="bg-brand-gradient inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 sm:px-5 sm:py-2.5 sm:text-sm"
+                >
+                  <SquarePen className="size-3.5 sm:size-4" />
+                  Sửa hồ sơ
+                </Link>
+              ) : (
+                <div className="shrink-0">
+                  <DirectMessageButton peerId={user.id} />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground sm:mt-2">
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-4 shrink-0" />
                 {user.area}
@@ -140,7 +156,7 @@ export default async function ProfilePage({
             </div>
 
             {/* Social proof nhanh theo Section 4 tinhnangmoi.md */}
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:mt-2.5 sm:text-sm">
               <span className="inline-flex items-center gap-1 font-bold text-amber-500">
                 <Star className="size-3.5 fill-current sm:size-4" />
                 <span>{user.averageStars > 0 ? user.averageStars.toFixed(1) : "0.0"}/5</span>
@@ -155,45 +171,36 @@ export default async function ProfilePage({
               </span>
             </div>
           </div>
-
-          {isOwnProfile ? (
-            <Link
-              href="/settings"
-              className="bg-brand-gradient inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              <SquarePen className="size-4" />
-              Sửa hồ sơ
-            </Link>
-          ) : (
-            <DirectMessageButton peerId={user.id} />
-          )}
         </div>
 
-        <p className="mt-4 text-sm">
+        <p className="mt-3 text-sm text-foreground/80 sm:mt-4">
           {user.bio || "Người chơi chưa cập nhật giới thiệu cá nhân."}
         </p>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          {user.sports.map((entry) => (
-            <span
-              key={entry.sportId}
-              className="bg-brand/15 text-brand flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold"
-            >
-              <span>{sportMap.get(entry.sportId)?.icon ?? "🏅"}</span>
-              {sportMap.get(entry.sportId)?.name ?? entry.sportId}
-            </span>
-          ))}
-          {user.sports[0] ? (
-            <span className="rounded-full bg-teal-400/15 px-3.5 py-1.5 text-sm font-semibold text-teal-400">
-              {user.sports[0].skillLevel}
-            </span>
-          ) : null}
+        <div className="mt-3.5 flex flex-wrap gap-2 sm:mt-4">
+          {user.sports.map((entry) => {
+            const sport = sportMap.get(entry.sportId);
+            return (
+              <div
+                key={entry.sportId}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/80 px-3 py-1 text-xs font-medium sm:text-sm"
+              >
+                <span>{sport?.icon ?? "🏅"}</span>
+                <span className="font-semibold text-foreground">
+                  {sport?.name ?? entry.sportId}
+                </span>
+                <span className="rounded-full bg-teal-500/15 px-2 py-0.5 text-[11px] font-bold text-teal-600 dark:text-teal-400">
+                  {entry.skillLevel}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </ProfileHeader>
 
       {/* Mobile: 1 cột theo thứ tự ưu tiên ghép trận (order-*); desktop: giữ
           lưới 2 cột, cột phải mở đầu bằng Môn thể thao, cột trái bằng Lịch rảnh. */}
-      <div className="mt-6 flex flex-col gap-6 lg:grid lg:grid-cols-[320px_1fr] lg:items-start">
+      <div className="mt-4 flex flex-col gap-4 sm:mt-6 sm:gap-6 lg:grid lg:grid-cols-[320px_1fr] lg:items-start">
         <div className="contents lg:block lg:space-y-6">
           <div className="order-2">
             <AvailabilityCard

@@ -28,10 +28,10 @@ export function UserReviewsCard({
   });
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+    <section className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3.5 sm:pb-4">
         <div>
-          <h2 className="font-heading flex items-center gap-2 text-lg font-bold">
+          <h2 className="font-heading flex items-center gap-2 text-base font-bold sm:text-lg">
             <MessageSquareQuote className="text-brand size-5" />
             Đánh giá từ đồng đội
           </h2>
