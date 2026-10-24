@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import {
   cancelJoinRequestAction,
+  completeMatchAction,
   leaveMatchAction,
   requestToJoinAction,
   respondToInviteAction,
@@ -173,6 +174,7 @@ export function MatchDetailActions({
   isFull,
   isOpen,
   isUpcoming,
+  isCompleted,
 }: {
   matchId: string;
   role: ViewerRole;
@@ -180,6 +182,7 @@ export function MatchDetailActions({
   isOpen: boolean;
   /** Rời trận chỉ cần trận chưa diễn ra, bất kể quyền hiển thị. */
   isUpcoming: boolean;
+  isCompleted?: boolean;
 }) {
   const chat = (
     <Link href={`/chat?match=${matchId}`} className={buttonClass("outline", "md")}>
@@ -187,7 +190,45 @@ export function MatchDetailActions({
     </Link>
   );
 
-  if (role === "host") return <div className="flex flex-wrap gap-3">{chat}</div>;
+  if (isCompleted) {
+    if (role === "host" || role === "joined") {
+      return (
+        <div className="flex flex-wrap items-center gap-3">
+          {chat}
+          <Link
+            href="/ratings"
+            className={buttonClass("brand", "md")}
+          >
+            ⭐ Đánh giá đồng đội
+          </Link>
+          <span className="bg-success-muted text-success rounded-full px-4 py-2 text-sm font-semibold">
+            Đã hoàn tất
+          </span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <StaticLabel variant="muted" size="md">
+          Trận đấu đã hoàn tất
+        </StaticLabel>
+      </div>
+    );
+  }
+
+  if (role === "host") {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        {chat}
+        <ActionButton
+          variant="success"
+          action={() => completeMatchAction(matchId)}
+        >
+          Hoàn thành trận đấu
+        </ActionButton>
+      </div>
+    );
+  }
 
   if (role === "joined") {
     return (

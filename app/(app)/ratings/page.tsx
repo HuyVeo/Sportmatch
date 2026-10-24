@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
+import { RateableMatchItem } from "@/components/ratings/rateable-match-item";
 import { RefreshButton } from "@/components/ratings/refresh-button";
-import { getMatchesJoinedBy } from "@/lib/data/matches";
+import { getRateableMatches } from "@/lib/data/ratings";
 import { getCurrentUser } from "@/lib/data/users";
 
 export const metadata: Metadata = {
@@ -11,8 +12,7 @@ export const metadata: Metadata = {
 
 export default async function RatingsPage() {
   const currentUser = await getCurrentUser();
-  const joined = await getMatchesJoinedBy(currentUser.id);
-  const rateable = joined.filter((match) => match.status === "Đã hoàn tất");
+  const rateableMatches = await getRateableMatches(currentUser.id);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -28,14 +28,14 @@ export default async function RatingsPage() {
         <RefreshButton />
       </div>
 
-      {rateable.length === 0 ? (
-        <div className="mt-28 text-center">
+      {rateableMatches.length === 0 ? (
+        <div className="mt-24 text-center">
           <p className="text-6xl">⭐</p>
           <p className="font-heading mt-6 text-xl font-bold">
-            Chưa có trận nào!
+            Chưa có trận nào cần đánh giá!
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Tham gia trận đấu và được phê duyệt để bắt đầu đánh giá đồng đội.
+            Tham gia các trận đấu và hoàn tất trận để bắt đầu đánh giá đồng đội.
           </p>
           <Link
             href="/matches"
@@ -46,9 +46,16 @@ export default async function RatingsPage() {
           </Link>
         </div>
       ) : (
-        <p className="mt-8 text-sm text-muted-foreground">
-          {rateable.length} trận đang chờ bạn đánh giá.
-        </p>
+        <div className="mt-8 space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Có <strong>{rateableMatches.length}</strong> trận đấu đã hoàn tất sẵn sàng để bạn chấm sao và nhận xét.
+          </p>
+          <div className="space-y-4">
+            {rateableMatches.map((item) => (
+              <RateableMatchItem key={item.id} match={item} />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

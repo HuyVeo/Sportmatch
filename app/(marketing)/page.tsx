@@ -16,6 +16,8 @@ import { getViewerSummary } from "@/lib/data/users";
 import { RANK_TIERS } from "@/lib/ranking";
 import { cn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 function Section({
   eyebrow,
   title,

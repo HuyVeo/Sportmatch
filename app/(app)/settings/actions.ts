@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
 import { searchCourts } from "@/lib/data/courts";
+import { prisma } from "@/lib/prisma";
 import {
   ProfileInputError,
   updateCurrentUser,
@@ -74,4 +75,51 @@ export async function saveProfileAction(
 export async function searchCourtsAction(sportId: string, query: string) {
   await requireUserId();
   return searchCourts(String(sportId), String(query));
+}
+
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại."),
+  newPassword: z.string().min(6, "Mật khẩu mới phải có tối thiểu 6 ký tự."),
+  confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu mới."),
+});
+
+export async function changePasswordAction(input: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const userId = await requireUserId();
+  const parsed = passwordSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ." };
+  }
+
+  const { currentPassword, newPassword, confirmPassword } = parsed.data;
+
+  if (newPassword !== confirmPassword) {
+    return { ok: false, error: "Mật khẩu xác nhận không khớp với mật khẩu mới." };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+
+  if (!user?.passwordHash) {
+    return { ok: false, error: "Tài khoản chưa thiết lập mật khẩu." };
+  }
+
+  const bcrypt = await import("bcryptjs");
+  const isValid = await bcrypt.default.compare(currentPassword, user.passwordHash);
+  if (!isValid) {
+    return { ok: false, error: "Mật khẩu hiện tại không chính xác." };
+  }
+
+  const newHash = await bcrypt.default.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: newHash },
+  });
+
+  return { ok: true };
 }

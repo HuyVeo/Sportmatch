@@ -88,26 +88,26 @@ export function MatchesBoard({
   ).length;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="mx-auto w-full max-w-6xl px-3.5 py-4 sm:px-6 sm:py-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight">Trận đấu</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Trận đấu</h1>
+          <p className="mt-1 text-xs text-muted-foreground sm:mt-2 sm:text-sm">
             <span className="text-brand font-semibold">{openCount}</span> trận
             còn chỗ trong tab hiện tại
           </p>
         </div>
         <Link
           href="/matches/create"
-          className="bg-brand-gradient shadow-brand/30 inline-flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold text-white shadow-xl transition-opacity hover:opacity-90"
+          className="bg-brand-gradient shadow-brand/30 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white shadow-lg transition-opacity hover:opacity-90 sm:px-6 sm:py-3 sm:text-base"
         >
-          <Plus className="size-4" />
+          <Plus className="size-3.5 sm:size-4" />
           Tạo trận
         </Link>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-border bg-card p-2">
-        <div className="flex flex-wrap gap-1">
+      <div className="mt-5 sm:mt-8 rounded-xl border border-border bg-card p-1 sm:rounded-2xl sm:p-2">
+        <div className="flex gap-1 overflow-x-auto no-scrollbar sm:flex-wrap">
           {tabs.map((item) => (
             <button
               key={item.id}
