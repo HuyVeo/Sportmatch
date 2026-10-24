@@ -12,14 +12,17 @@ import {
   Users,
 } from "lucide-react";
 import { AvailabilityCard } from "@/components/profile/availability-card";
+import { CommunityVoteButton } from "@/components/profile/vote-button";
 import { DirectMessageButton } from "@/components/profile/direct-message-button";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { SportProfileCard } from "@/components/profile/sport-profile-card";
 import { UserReviewsCard } from "@/components/profile/user-reviews-card";
 import { calculateScore, getRankTier } from "@/lib/ranking";
 import { getSports } from "@/lib/data/sports";
+import { hasVotedUser } from "@/app/(app)/profile/actions";
 import {
   getCurrentUser,
+  getMatchCompletionRate,
   getUserById,
   getUserRecentReviews,
   getUsers,
@@ -49,6 +52,11 @@ export default async function ProfilePage({
   ]);
 
   if (!user) notFound();
+
+  const [completionRate, initialVoted] = await Promise.all([
+    getMatchCompletionRate(user.id),
+    hasVotedUser(user.id),
+  ]);
 
   const sportMap = new Map(sports.map((sport) => [sport.id, sport]));
   const score = calculateScore({
@@ -104,9 +112,21 @@ export default async function ProfilePage({
   ];
 
   const trustDetails = [
-    { label: "Độ tin cậy", value: user.trustScore },
-    { label: "Hoàn thành trận", value: 100 },
-    { label: "Đánh giá cộng đồng", value: Math.min(100, user.communityVotes * 2) },
+    {
+      label: "Độ tin cậy",
+      value: user.trustScore,
+      hint: "Tăng khi hoàn tất trận & nhận 4–5★; giảm khi bỏ trận",
+    },
+    {
+      label: "Hoàn thành trận",
+      value: completionRate,
+      hint: `${completionRate}% trận hoàn thành thực tế (không bỏ dở giữa chừng)`,
+    },
+    {
+      label: "Đánh giá cộng đồng",
+      value: Math.min(100, user.communityVotes * 10),
+      hint: `${user.communityVotes} lượt bình chọn tín nhiệm từ cộng đồng người chơi`,
+    },
   ];
 
   const isOwnProfile = user.id === currentUser.id;
@@ -123,23 +143,31 @@ export default async function ProfilePage({
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
                 {user.name}
               </h1>
-              {isOwnProfile ? (
-                <Link
-                  href="/settings"
-                  className="bg-brand-gradient inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 sm:px-5 sm:py-2.5 sm:text-sm"
-                >
-                  <SquarePen className="size-3.5 sm:size-4" />
-                  Sửa hồ sơ
-                </Link>
-              ) : (
-                <div className="shrink-0">
-                  <DirectMessageButton peerId={user.id} />
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <CommunityVoteButton
+                  targetUserId={user.id}
+                  initialVoted={initialVoted}
+                  initialCount={user.communityVotes}
+                  isOwnProfile={isOwnProfile}
+                />
+                {isOwnProfile ? (
+                  <Link
+                    href="/settings"
+                    className="bg-brand-gradient inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 sm:px-5 sm:py-2.5 sm:text-sm"
+                  >
+                    <SquarePen className="size-3.5 sm:size-4" />
+                    Sửa hồ sơ
+                  </Link>
+                ) : (
+                  <div className="shrink-0">
+                    <DirectMessageButton peerId={user.id} />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground sm:mt-2">
@@ -357,13 +385,21 @@ export default async function ProfilePage({
           </section>
 
           <section className="order-6 rounded-2xl border border-border bg-card p-6">
-            <h2 className="font-heading text-lg font-bold">Chi tiết uy tín</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-lg font-bold">Chi tiết uy tín</h2>
+              <span className="rounded-full bg-teal-500/10 px-2.5 py-0.5 text-xs font-semibold text-teal-600 dark:text-teal-400">
+                Hệ thống đánh giá thực tế
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Điểm số tự động điều chỉnh dựa trên lịch sử thi đấu và tương tác cộng đồng.
+            </p>
             <ul className="mt-5 space-y-5">
               {trustDetails.map((item) => (
                 <li key={item.label}>
                   <div className="flex items-center justify-between text-sm">
-                    <span>{item.label}</span>
-                    <span className="font-bold">{item.value}%</span>
+                    <span className="font-medium">{item.label}</span>
+                    <span className="font-bold text-foreground">{item.value}%</span>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
                     <div
@@ -371,6 +407,7 @@ export default async function ProfilePage({
                       style={{ width: `${item.value}%` }}
                     />
                   </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{item.hint}</p>
                 </li>
               ))}
             </ul>

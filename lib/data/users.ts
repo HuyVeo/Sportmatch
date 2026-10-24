@@ -1,5 +1,6 @@
 import "server-only";
 
+import { redirect } from "next/navigation";
 import {
   MAX_FAVORITE_COURTS,
   MAX_PREFERRED_AREAS,
@@ -169,10 +170,37 @@ export async function getCurrentUser(): Promise<User> {
   });
 
   if (!row) {
-    throw new Error("Không tìm thấy người dùng của phiên đăng nhập hiện tại.");
+    redirect("/login");
   }
 
   return toDomainUser(row);
+}
+
+/**
+ * Tính tỷ lệ hoàn thành trận thực tế:
+ * (Số trận đã tham gia và hoàn thành) / (Số trận đã hoàn thành + Số trận bỏ dở hoặc rời trận) * 100
+ * Nếu là thành viên mới chưa tham gia trận nào -> mặc định 100%.
+ */
+export async function getMatchCompletionRate(userId: string): Promise<number> {
+  const [completedCount, leftCount] = await Promise.all([
+    prisma.matchParticipant.count({
+      where: {
+        userId,
+        status: "JOINED",
+        match: { status: "COMPLETED" },
+      },
+    }),
+    prisma.matchParticipant.count({
+      where: {
+        userId,
+        status: "LEFT",
+      },
+    }),
+  ]);
+
+  const total = completedCount + leftCount;
+  if (total === 0) return 100;
+  return Math.round((completedCount / total) * 100);
 }
 
 export type ViewerSummary = {

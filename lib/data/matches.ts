@@ -479,6 +479,19 @@ export async function leaveMatch(matchId: string): Promise<void> {
       where: { matchId_userId: { matchId, userId } },
       data: { status: "LEFT" },
     });
+
+    // Trừ 5 điểm uy tín do rời/bỏ trận đấu đã tham gia
+    const leavingUser = await tx.user.findUnique({
+      where: { id: userId },
+      select: { trustScore: true },
+    });
+    if (leavingUser) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { trustScore: Math.max(0, leavingUser.trustScore - 5) },
+      });
+    }
+
     await tx.conversationMember.deleteMany({
       where: { userId, conversation: { matchId } },
     });
@@ -572,6 +585,20 @@ export async function completeMatch(matchId: string): Promise<void> {
     participantUserIds.add(match.hostId);
     for (const p of match.participants) {
       participantUserIds.add(p.userId);
+    }
+
+    // Tăng 2 điểm uy tín (tối đa 100) cho mỗi thành viên hoàn thành trận đấu đúng hẹn
+    for (const pUserId of participantUserIds) {
+      const pUser = await tx.user.findUnique({
+        where: { id: pUserId },
+        select: { trustScore: true },
+      });
+      if (pUser) {
+        await tx.user.update({
+          where: { id: pUserId },
+          data: { trustScore: Math.min(100, pUser.trustScore + 2) },
+        });
+      }
     }
 
     // Gửi thông báo yêu cầu đánh giá tới các thành viên

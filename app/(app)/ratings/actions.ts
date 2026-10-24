@@ -85,6 +85,22 @@ export async function submitRatingAction(input: {
       },
     });
 
+    // Cập nhật điểm uy tín theo chất lượng đánh giá từ đồng đội
+    const targetUser = await prisma.user.findUnique({
+      where: { id: toUserId },
+      select: { trustScore: true },
+    });
+    if (targetUser) {
+      const delta = stars >= 5 ? 2 : stars >= 4 ? 1 : stars <= 2 ? -3 : 0;
+      if (delta !== 0) {
+        const newScore = Math.max(0, Math.min(100, targetUser.trustScore + delta));
+        await prisma.user.update({
+          where: { id: toUserId },
+          data: { trustScore: newScore },
+        });
+      }
+    }
+
     // Tạo thông báo cho người được đánh giá
     const reviewer = await prisma.user.findUnique({
       where: { id: currentUserId },
